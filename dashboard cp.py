@@ -7,7 +7,8 @@ import joblib
 import sklearn
 
 # Load the trained model
-model = joblib.load('decision_tree_model.pkl')
+scaler = joblib.load('scaler_expense.pkl')
+model = joblib.load('model_dt_expense_tuned.pkl')
 
 # Load the dataset
 def load_data():
@@ -78,7 +79,7 @@ st.pyplot(fig)
 
 #Pengeluaran berdasarkan akun
 st.subheader("Pengeluaran Berdasarkan Akun")
-df_by_account = filtered_df[filtered_df['type'].str.lower() == 'expense'] \
+df_by_account = filtered_df[filtered_df['type'] == 'EXPENSE'] \
     .groupby('account')['amount'].sum() \
     .reset_index() \
     .sort_values('amount', ascending=False)
@@ -102,7 +103,7 @@ st.pyplot(fig)
 
 #Diagram lingkaran untuk melihat keseimbangan antara pengeluaran dan pemasukan
 st.subheader("Pengeluaran Vs Pemasukan")
-balance = filtered_df[filtered_df['type'].str.lower() != 'transfer'] \
+balance = filtered_df[filtered_df['type'] != 'TRANSFER'] \
     .groupby("type")["amount"].sum()
 fig, ax = plt.subplots()
 ax.pie(balance, labels=balance.index, autopct='%1.1f%%', startangle=90)
@@ -112,7 +113,6 @@ st.write("💰 Total pemasukan:", balance.get("INCOME", 0))
 st.write("💸 Total pengeluaran:", balance.get("EXPENSE", 0))
 
 # Prediksi Pengeluaran
-# SESUDAH
 st.subheader("🔍 Apakah Pengeluaran Anda Sehat?")
 
 col1, col2 = st.columns(2)
@@ -141,26 +141,15 @@ with col3:
 with col4:
     acc_savings = st.checkbox("Savings Bank")
 
-st.write("**Tipe Transaksi:**")
-col1, col2, col3 = st.columns(3)
-with col1:
-    type_expense = st.checkbox("Expense")
-with col2:
-    type_income = st.checkbox("Income")
-with col3:
-    type_transfer = st.checkbox("Transfer")
 
 if st.button("Prediksi"):
     category_selected = sum([cat_bills, cat_food, cat_transport])
     account_selected = sum([acc_cash, acc_metro, acc_salary, acc_savings])
-    type_selected = sum([type_expense, type_income, type_transfer])
-
+    
     if category_selected != 1:
         st.warning("⚠️ Pilih tepat satu kategori.")
     elif account_selected != 1:
         st.warning("⚠️ Pilih tepat satu akun.")
-    elif type_selected != 1:
-        st.warning("⚠️ Pilih tepat satu tipe transaksi.")
     else:
         input_data = pd.DataFrame([{
             'amount': input_amount,
@@ -174,14 +163,16 @@ if st.button("Prediksi"):
             'account_Metro Card': int(acc_metro),
             'account_Salary Bank': int(acc_salary),
             'account_Savings Bank': int(acc_savings),
-            'type_EXPENSE': int(type_expense),
-            'type_INCOME': int(type_income),
-            'type_TRANSFER': int(type_transfer),
+            'type_EXPENSE': 1,
+            'type_INCOME': 0,
+            'type_TRANSFER': 0,
         }])
 
+
         try:
-            prediction = model.predict(input_data)
-            proba = model.predict_proba(input_data)[0]
+            input_scaler = scaler.transform(input_data)
+            prediction = model.predict(input_scaler)
+            proba = model.predict_proba(input_scaler)[0]
             confidence = max(proba) * 100
 
             if prediction[0] == 1:
