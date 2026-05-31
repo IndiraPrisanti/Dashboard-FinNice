@@ -11,7 +11,7 @@ model = joblib.load('decision_tree_model.pkl')
 
 # Load the dataset
 def load_data():
-    df = pd.read_csv(r"D:\Dir's Database\CAPSSTONE PROJECT\FinNice\expenses_income_summary.csv", delimiter=";")
+    df = pd.read_csv("expenses_income_summary.csv", delimiter=";")
     return df
 
 df = load_data()
